@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from "react"
 import { motion } from "framer-motion"
 import PokerTable from "@/components/room/PokerTable"
 import CardDealSequence from "@/components/room/CardDealSequence"
-import CardSpotlight from "@/components/cards/CardSpotlight"
+import CardSpotlight, { ExpandedCard } from "@/components/cards/CardSpotlight"
 import { usePageTransition } from "@/lib/transitionContext"
 import { RoomData, CommunityCardData } from "@/lib/types"
 
@@ -14,7 +14,7 @@ interface PokerRoomProps {
 
 export default function PokerRoom({ room }: PokerRoomProps) {
   const { endTransition, triggerTransition } = usePageTransition()
-  const [expandedCard, setExpandedCard] = useState<CommunityCardData | null>(null)
+  const [expanded, setExpanded] = useState<ExpandedCard | null>(null)
 
   useEffect(() => {
     const timer = setTimeout(endTransition, 80)
@@ -24,6 +24,10 @@ export default function PokerRoom({ room }: PokerRoomProps) {
   const handleLeave = useCallback(() => {
     triggerTransition("/")
   }, [triggerTransition])
+
+  const handleExpand = useCallback((card: CommunityCardData, rect: DOMRect) => {
+    setExpanded({ card, rect })
+  }, [])
 
   return (
     <div
@@ -54,11 +58,11 @@ export default function PokerRoom({ room }: PokerRoomProps) {
       {/* Table — fills remaining space */}
       <div className="flex-1 flex items-center justify-center mt-14">
         <PokerTable>
-          <CardDealSequence room={room} onExpandCard={setExpandedCard} />
+          <CardDealSequence room={room} onExpandCard={handleExpand} />
         </PokerTable>
       </div>
 
-      <CardSpotlight card={expandedCard} onClose={() => setExpandedCard(null)} />
+      <CardSpotlight expanded={expanded} onClose={() => setExpanded(null)} />
     </div>
   )
 }

@@ -7,29 +7,15 @@ const isRed = (suit: string) => suit === "♥" || suit === "♦"
 
 interface HoleCardProps {
   card: HoleCardData
-  dealt: boolean
   faceUp: boolean
-  dealDelay?: number
   flipDelay?: number
 }
 
-export default function HoleCard({
-  card,
-  dealt,
-  faceUp,
-  dealDelay = 0,
-  flipDelay = 0,
-}: HoleCardProps) {
+export default function HoleCard({ card, faceUp, flipDelay = 0 }: HoleCardProps) {
   const red = isRed(card.suit)
 
   return (
-    <motion.div
-      style={{ width: 88, height: 124, perspective: 800 }}
-      initial={{ y: -160, opacity: 0 }}
-      animate={dealt ? { y: 0, opacity: 1 } : { y: -160, opacity: 0 }}
-      transition={{ duration: 0.38, delay: dealDelay, ease: "easeOut" }}
-    >
-      {/* Flip container */}
+    <div style={{ width: 88, height: 124, perspective: 800 }}>
       <motion.div
         className="relative w-full h-full"
         style={{ transformStyle: "preserve-3d" }}
@@ -45,26 +31,14 @@ export default function HoleCard({
             WebkitBackfaceVisibility: "hidden",
           }}
         >
-          <div
-            className={`text-xs font-mono font-bold leading-tight ${
-              red ? "text-[#dc2626]" : "text-black"
-            }`}
-          >
+          <div className={`text-xs font-mono font-bold leading-tight ${red ? "text-[#dc2626]" : "text-black"}`}>
             <div>{card.rank}</div>
             <div>{card.suit}</div>
           </div>
-          <div
-            className={`flex-1 flex items-center justify-center text-4xl ${
-              red ? "text-[#dc2626]" : "text-black"
-            }`}
-          >
+          <div className={`flex-1 flex items-center justify-center text-4xl ${red ? "text-[#dc2626]" : "text-black"}`}>
             {card.suit}
           </div>
-          <div
-            className={`text-xs font-mono font-bold leading-tight rotate-180 ${
-              red ? "text-[#dc2626]" : "text-black"
-            }`}
-          >
+          <div className={`text-xs font-mono font-bold leading-tight rotate-180 ${red ? "text-[#dc2626]" : "text-black"}`}>
             <div>{card.rank}</div>
             <div>{card.suit}</div>
           </div>
@@ -86,6 +60,6 @@ export default function HoleCard({
           </div>
         </div>
       </motion.div>
-    </motion.div>
+    </div>
   )
 }
