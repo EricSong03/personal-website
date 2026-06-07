@@ -1,5 +1,449 @@
-import { RoomData } from './types'
+import { RoomData, ScriptNode } from './types'
 
+// ---------------------------------------------------------------------------
+// Shared villain roster (same 5 names across all rooms)
+// ---------------------------------------------------------------------------
+const mkVillains = (startingStack: number) => [
+  { position: 'UTG' as const, name: 'Marcus', startingStack, avatar: 'M' },
+  { position: 'LJ'  as const, name: 'Chen',   startingStack, avatar: 'C' },
+  { position: 'HJ'  as const, name: 'Sofia',  startingStack, avatar: 'S' },
+  { position: 'BTN' as const, name: 'Viktor', startingStack, avatar: 'V' },
+  { position: 'SB'  as const, name: 'Danny',  startingStack, avatar: 'D' },
+]
+
+// ---------------------------------------------------------------------------
+// Build a "villain bets → hero call/raise/fold" block (for check-then-villain-bets).
+// betPercent: villain bets X% of current pot.
+// raisePercent: hero's check-raise total = Y% of pot (always offered — check-raise available).
+// Labels use {x} placeholder resolved at execution time.
+// ---------------------------------------------------------------------------
+function villainBetBlock(betPercent: number, raisePercent: number): ScriptNode[] {
+  return [
+    {
+      kind: 'action' as const,
+      position: 'BTN' as const,
+      action: 'bet' as const,
+      potPercent: betPercent,
+      label: `Viktor bets {x}`,
+    },
+    {
+      kind: 'decision' as const,
+      options: [
+        {
+          action: 'call' as const,
+          callCurrent: true,
+          label: 'Call {x}',
+          next: [],
+        },
+        {
+          action: 'raise' as const,
+          potPercent: raisePercent,
+          label: `Raise to {x}`,
+          next: [
+            {
+              kind: 'action' as const,
+              position: 'BTN' as const,
+              action: 'call' as const,
+              callCurrent: true,
+              label: `Viktor calls {x}`,
+            },
+          ],
+        },
+        {
+          action: 'fold' as const,
+          isFold: true,
+          label: 'Fold',
+          next: [],
+        },
+      ],
+    },
+  ]
+}
+
+// ===========================================================================
+// ABOUT — Q♥ 4♥ vs K♦ K♣ | Board: A♥ K♥ 6♠ 5♦ 2♥
+// Backdoor flush draw hits the river. Hero flushes out Viktor's trips.
+// ===========================================================================
+const aboutScript: RoomData['handScript'] = {
+  preflop: [
+    { kind: 'action', position: 'UTG', action: 'fold', label: 'UTG folds' },
+    { kind: 'action', position: 'LJ',  action: 'fold', label: 'LJ folds' },
+    { kind: 'action', position: 'HJ',  action: 'fold', label: 'HJ folds' },
+    { kind: 'action', position: 'BTN', action: 'raise', amount: 6, label: 'Viktor raises to $6' },
+    { kind: 'action', position: 'SB',  action: 'fold', label: 'Danny folds' },
+    {
+      kind: 'decision',
+      options: [
+        {
+          action: 'call', amount: 4, label: 'Call $4',
+          next: [],
+        },
+        {
+          action: 'raise', amount: 16, label: 'Raise to $18',
+          next: [
+            { kind: 'action', position: 'BTN', action: 'call', amount: 12, label: 'Viktor calls' },
+          ],
+        },
+        { action: 'fold', label: 'Fold', isFold: true, next: [] },
+      ],
+    },
+  ],
+  flop: [
+    {
+      kind: 'decision',
+      options: [
+        {
+          action: 'check', label: 'Check',
+          next: villainBetBlock(65, 200),
+        },
+        {
+          action: 'bet', potPercent: 65, label: 'Bet {x}',
+          next: [{ kind: 'action', position: 'BTN', action: 'call', callCurrent: true, label: 'Viktor calls' }],
+        },
+        { action: 'fold', label: 'Fold', isFold: true, next: [] },
+      ],
+    },
+  ],
+  turn: [
+    {
+      kind: 'decision',
+      options: [
+        {
+          action: 'check', label: 'Check',
+          next: villainBetBlock(65, 200),
+        },
+        {
+          action: 'bet', potPercent: 65, label: 'Bet {x}',
+          next: [{ kind: 'action', position: 'BTN', action: 'call', callCurrent: true, label: 'Viktor calls' }],
+        },
+        { action: 'fold', label: 'Fold', isFold: true, next: [] },
+      ],
+    },
+  ],
+  river: [
+    {
+      kind: 'decision',
+      options: [
+        {
+          action: 'bet', potPercent: 75, label: 'Bet {x}',
+          next: [{ kind: 'action', position: 'BTN', action: 'call', callCurrent: true, label: 'Viktor calls' }],
+        },
+        {
+          action: 'check', label: 'Check',
+          next: [{ kind: 'action', position: 'BTN', action: 'check', label: 'Viktor checks' }],
+        },
+        { action: 'fold', label: 'Fold', isFold: true, next: [] },
+      ],
+    },
+  ],
+  showdown: {
+    heroWins: true,
+    description: 'Q♥4♥ flush beats K♦K♣ three-of-a-kind',
+  },
+}
+
+// ===========================================================================
+// EXPERIENCE — A♠ K♠ vs 9♦ 9♥ | Board: A♥ 9♠ 2♦ A♦ K♣
+// Hero flops top pair, turn pairs the ace (two pair), river kings up = full house
+// ===========================================================================
+const experienceScript: RoomData['handScript'] = {
+  preflop: [
+    { kind: 'action', position: 'UTG', action: 'fold', label: 'UTG folds' },
+    { kind: 'action', position: 'LJ',  action: 'fold', label: 'LJ folds' },
+    { kind: 'action', position: 'HJ',  action: 'fold', label: 'HJ folds' },
+    { kind: 'action', position: 'BTN', action: 'raise', amount: 6, label: 'Viktor raises to $6' },
+    { kind: 'action', position: 'SB',  action: 'fold', label: 'Danny folds' },
+    {
+      kind: 'decision',
+      options: [
+        {
+          action: 'raise', amount: 18, label: 'Raise to $20',
+          next: [
+            { kind: 'action', position: 'BTN', action: 'call', amount: 14, label: 'Viktor calls' },
+          ],
+        },
+        {
+          action: 'call', amount: 4, label: 'Call $4',
+          next: [],
+        },
+        { action: 'fold', label: 'Fold', isFold: true, next: [] },
+      ],
+    },
+  ],
+  flop: [
+    {
+      kind: 'decision',
+      options: [
+        {
+          action: 'bet', potPercent: 65, label: 'Bet {x}',
+          next: [{ kind: 'action', position: 'BTN', action: 'call', callCurrent: true, label: 'Viktor calls' }],
+        },
+        {
+          action: 'check', label: 'Check',
+          next: villainBetBlock(65, 200),
+        },
+        { action: 'fold', label: 'Fold', isFold: true, next: [] },
+      ],
+    },
+  ],
+  turn: [
+    {
+      kind: 'decision',
+      options: [
+        {
+          action: 'bet', potPercent: 65, label: 'Bet {x}',
+          next: [{ kind: 'action', position: 'BTN', action: 'call', callCurrent: true, label: 'Viktor calls' }],
+        },
+        {
+          action: 'check', label: 'Check',
+          next: villainBetBlock(65, 200),
+        },
+        { action: 'fold', label: 'Fold', isFold: true, next: [] },
+      ],
+    },
+  ],
+  river: [
+    {
+      kind: 'decision',
+      options: [
+        {
+          action: 'bet', potPercent: 75, label: 'Bet {x}',
+          next: [{ kind: 'action', position: 'BTN', action: 'call', callCurrent: true, label: 'Viktor calls' }],
+        },
+        {
+          action: 'check', label: 'Check',
+          next: villainBetBlock(75, 250),
+        },
+        { action: 'fold', label: 'Fold', isFold: true, next: [] },
+      ],
+    },
+  ],
+  showdown: {
+    heroWins: true,
+    description: 'A♠K♠ full house (aces full of kings) beats 9♦9♥ full house (nines full of aces)',
+  },
+}
+
+// ===========================================================================
+// PROJECTS — A♥ A♦ vs 5♠ 6♠ | Board: A♠ 3♠ 4♦ 2♣ 2♦
+// Hero flops trips, villain flops straight draw. Hero makes full house; villain's straight loses.
+// ===========================================================================
+const projectsScript: RoomData['handScript'] = {
+  preflop: [
+    { kind: 'action', position: 'UTG', action: 'fold', label: 'UTG folds' },
+    { kind: 'action', position: 'LJ',  action: 'fold', label: 'LJ folds' },
+    { kind: 'action', position: 'HJ',  action: 'fold', label: 'HJ folds' },
+    { kind: 'action', position: 'BTN', action: 'raise', amount: 6, label: 'Viktor raises to $6' },
+    { kind: 'action', position: 'SB',  action: 'fold', label: 'Danny folds' },
+    {
+      kind: 'decision',
+      options: [
+        {
+          action: 'raise', amount: 18, label: 'Raise to $20',
+          next: [
+            { kind: 'action', position: 'BTN', action: 'call', amount: 14, label: 'Viktor calls' },
+          ],
+        },
+        {
+          action: 'call', amount: 4, label: 'Call $4',
+          next: [],
+        },
+        { action: 'fold', label: 'Fold', isFold: true, next: [] },
+      ],
+    },
+  ],
+  flop: [
+    {
+      kind: 'decision',
+      options: [
+        {
+          action: 'check', label: 'Check',
+          next: villainBetBlock(65, 200),
+        },
+        {
+          action: 'bet', potPercent: 65, label: 'Bet {x}',
+          next: [{ kind: 'action', position: 'BTN', action: 'call', callCurrent: true, label: 'Viktor calls' }],
+        },
+        { action: 'fold', label: 'Fold', isFold: true, next: [] },
+      ],
+    },
+  ],
+  turn: [
+    {
+      kind: 'decision',
+      options: [
+        {
+          action: 'check', label: 'Check',
+          next: [
+            { kind: 'action', position: 'BTN', action: 'bet', potPercent: 65, label: 'Viktor bets {x}' },
+            {
+              kind: 'decision',
+              options: [
+                {
+                  action: 'raise', potPercent: 220, label: 'Raise to {x}',
+                  next: [{ kind: 'action', position: 'BTN', action: 'call', callCurrent: true, label: 'Viktor calls {x}' }],
+                },
+                { action: 'call', callCurrent: true, label: 'Call {x}', next: [] },
+                { action: 'fold', label: 'Fold', isFold: true, next: [] },
+              ],
+            },
+          ],
+        },
+        {
+          action: 'bet', potPercent: 65, label: 'Bet {x}',
+          next: [{ kind: 'action', position: 'BTN', action: 'call', callCurrent: true, label: 'Viktor calls' }],
+        },
+        { action: 'fold', label: 'Fold', isFold: true, next: [] },
+      ],
+    },
+  ],
+  river: [
+    {
+      kind: 'decision',
+      options: [
+        {
+          action: 'bet', potPercent: 100, label: 'Bet {x}',
+          next: [{ kind: 'action', position: 'BTN', action: 'call', callCurrent: true, label: 'Viktor calls' }],
+        },
+        {
+          action: 'check', label: 'Check',
+          next: villainBetBlock(75, 250),
+        },
+        { action: 'fold', label: 'Fold', isFold: true, next: [] },
+      ],
+    },
+  ],
+  showdown: {
+    heroWins: true,
+    description: 'A♥A♦ full house (aces full of twos) beats 5♠6♠ straight',
+  },
+}
+
+// ===========================================================================
+// AWARDS — J♣ 10♣ vs A♥ A♦ | Board: A♠ K♣ Q♦ Q♣ A♣
+// Viktor flops top set, hero has Broadway draw. River completes the ROYAL FLUSH.
+// ===========================================================================
+const awardsScript: RoomData['handScript'] = {
+  preflop: [
+    { kind: 'action', position: 'UTG', action: 'fold', label: 'UTG folds' },
+    { kind: 'action', position: 'LJ',  action: 'fold', label: 'LJ folds' },
+    { kind: 'action', position: 'HJ',  action: 'fold', label: 'HJ folds' },
+    { kind: 'action', position: 'BTN', action: 'raise', amount: 6, label: 'Viktor raises to $6' },
+    { kind: 'action', position: 'SB',  action: 'fold', label: 'Danny folds' },
+    {
+      kind: 'decision',
+      options: [
+        {
+          action: 'call', amount: 4, label: 'Call $4',
+          next: [],
+        },
+        {
+          action: 'raise', amount: 16, label: 'Raise to $18',
+          next: [
+            { kind: 'action', position: 'BTN', action: 'call', amount: 12, label: 'Viktor calls' },
+          ],
+        },
+        { action: 'fold', label: 'Fold', isFold: true, next: [] },
+      ],
+    },
+  ],
+  flop: [
+    {
+      kind: 'decision',
+      options: [
+        {
+          action: 'check', label: 'Check',
+          next: villainBetBlock(65, 200),
+        },
+        {
+          // Hero bets, Viktor raises big (he has top set), hero can call or fold
+          action: 'bet', potPercent: 65, label: 'Bet {x}',
+          next: [
+            { kind: 'action', position: 'BTN', action: 'raise', potPercent: 220, label: 'Viktor raises to {x}' },
+            {
+              kind: 'decision',
+              options: [
+                { action: 'call', callCurrent: true, label: 'Call {x}', next: [] },
+                {
+                  action: 'raise', potPercent: 380, label: 'Shove {x}',
+                  next: [{ kind: 'action', position: 'BTN', action: 'call', callCurrent: true, label: 'Viktor calls — all in!' }],
+                },
+                { action: 'fold', label: 'Fold', isFold: true, next: [] },
+              ],
+            },
+          ],
+        },
+        { action: 'fold', label: 'Fold', isFold: true, next: [] },
+      ],
+    },
+  ],
+  turn: [
+    {
+      kind: 'decision',
+      options: [
+        {
+          action: 'check', label: 'Check',
+          next: villainBetBlock(65, 200),
+        },
+        {
+          action: 'bet', potPercent: 65, label: 'Bet {x}',
+          next: [{ kind: 'action', position: 'BTN', action: 'call', callCurrent: true, label: 'Viktor calls' }],
+        },
+        { action: 'fold', label: 'Fold', isFold: true, next: [] },
+      ],
+    },
+  ],
+  river: [
+    {
+      kind: 'decision',
+      options: [
+        {
+          action: 'check', label: 'Check',
+          next: [
+            { kind: 'action', position: 'BTN', action: 'bet', potPercent: 65, label: 'Viktor bets {x}' },
+            {
+              kind: 'decision',
+              options: [
+                {
+                  action: 'raise', potPercent: 300, label: 'Raise to {x}',
+                  next: [{ kind: 'action', position: 'BTN', action: 'call', callCurrent: true, label: 'Viktor calls — all in!' }],
+                },
+                { action: 'call', callCurrent: true, label: 'Call {x}', next: [] },
+                { action: 'fold', label: 'Fold', isFold: true, next: [] },
+              ],
+            },
+          ],
+        },
+        {
+          action: 'bet', potPercent: 65, label: 'Bet {x}',
+          next: [
+            { kind: 'action', position: 'BTN', action: 'raise', potPercent: 220, label: 'Viktor raises to {x}' },
+            {
+              kind: 'decision',
+              options: [
+                {
+                  action: 'raise', potPercent: 400, label: 'Shove {x}',
+                  next: [{ kind: 'action', position: 'BTN', action: 'call', callCurrent: true, label: 'Viktor calls — all in!' }],
+                },
+                { action: 'call', callCurrent: true, label: 'Call {x}', next: [] },
+                { action: 'fold', label: 'Fold', isFold: true, next: [] },
+              ],
+            },
+          ],
+        },
+        { action: 'fold', label: 'Fold', isFold: true, next: [] },
+      ],
+    },
+  ],
+  showdown: {
+    heroWins: true,
+    description: 'J♣10♣ ROYAL FLUSH beats A♥A♦ four aces',
+  },
+}
+
+// ===========================================================================
+// ROOM DATA
+// ===========================================================================
 export const ROOMS: RoomData[] = [
   {
     id: 'about',
@@ -9,10 +453,20 @@ export const ROOMS: RoomData[] = [
       { rank: 'Q', suit: '♥' },
       { rank: '4', suit: '♥' },
     ],
+    villains: mkVillains(200),
+    mainVillainPosition: 'BTN',
+    villainHoleCards: [
+      { rank: 'K', suit: '♦' },
+      { rank: 'K', suit: '♣' },
+    ],
+    heroStartingStack: 200,
+    bigBlind: 2,
+    smallBlind: 1,
+    handScript: aboutScript,
     communityCards: [
       {
         id: 'about-background',
-        rank: '2',
+        rank: 'A',
         suit: '♥',
         frontHeadline: 'Background',
         frontSubtext: 'Who I am',
@@ -28,7 +482,7 @@ export const ROOMS: RoomData[] = [
       },
       {
         id: 'about-contacts',
-        rank: '3',
+        rank: 'K',
         suit: '♥',
         frontHeadline: 'Contacts',
         frontSubtext: 'Get in touch',
@@ -44,8 +498,8 @@ export const ROOMS: RoomData[] = [
       },
       {
         id: 'about-tech-interests',
-        rank: '4',
-        suit: '♥',
+        rank: '6',
+        suit: '♠',
         frontHeadline: 'Technical Interests',
         frontSubtext: 'What I build',
         back: {
@@ -61,7 +515,7 @@ export const ROOMS: RoomData[] = [
       {
         id: 'about-extracurriculars',
         rank: '5',
-        suit: '♥',
+        suit: '♦',
         frontHeadline: 'Outside the Lab',
         frontSubtext: 'When not coding',
         back: {
@@ -71,7 +525,7 @@ export const ROOMS: RoomData[] = [
       },
       {
         id: 'about-gtoillini',
-        rank: '6',
+        rank: '2',
         suit: '♥',
         frontHeadline: 'GTOIllini',
         frontSubtext: 'Executive Secretary',
@@ -95,11 +549,21 @@ export const ROOMS: RoomData[] = [
       { rank: 'A', suit: '♠' },
       { rank: 'K', suit: '♠' },
     ],
+    villains: mkVillains(200),
+    mainVillainPosition: 'BTN',
+    villainHoleCards: [
+      { rank: '9', suit: '♦' },
+      { rank: '9', suit: '♥' },
+    ],
+    heroStartingStack: 200,
+    bigBlind: 2,
+    smallBlind: 1,
+    handScript: experienceScript,
     communityCards: [
       {
         id: 'exp-comet',
-        rank: '2',
-        suit: '♠',
+        rank: 'A',
+        suit: '♥',
         frontHeadline: 'Comet',
         frontSubtext: 'Current',
         back: {
@@ -109,7 +573,7 @@ export const ROOMS: RoomData[] = [
       },
       {
         id: 'exp-calltocase',
-        rank: '3',
+        rank: '9',
         suit: '♠',
         frontHeadline: 'CallToCase',
         frontSubtext: 'Current',
@@ -120,8 +584,8 @@ export const ROOMS: RoomData[] = [
       },
       {
         id: 'exp-uiuc-research',
-        rank: '4',
-        suit: '♠',
+        rank: '2',
+        suit: '♦',
         frontHeadline: 'UIUC Research',
         frontSubtext: 'Current',
         back: {
@@ -131,8 +595,8 @@ export const ROOMS: RoomData[] = [
       },
       {
         id: 'exp-nokia',
-        rank: '5',
-        suit: '♠',
+        rank: 'A',
+        suit: '♦',
         frontHeadline: 'Nokia',
         frontSubtext: 'Software Engineer Intern · Summer 2024',
         back: {
@@ -148,8 +612,8 @@ export const ROOMS: RoomData[] = [
       },
       {
         id: 'exp-guelph',
-        rank: '6',
-        suit: '♠',
+        rank: 'K',
+        suit: '♣',
         frontHeadline: 'University of Guelph',
         frontSubtext: 'IoT Researcher · Summer 2024',
         back: {
@@ -173,11 +637,21 @@ export const ROOMS: RoomData[] = [
       { rank: 'A', suit: '♥' },
       { rank: 'A', suit: '♦' },
     ],
+    villains: mkVillains(200),
+    mainVillainPosition: 'BTN',
+    villainHoleCards: [
+      { rank: '5', suit: '♠' },
+      { rank: '6', suit: '♠' },
+    ],
+    heroStartingStack: 200,
+    bigBlind: 2,
+    smallBlind: 1,
+    handScript: projectsScript,
     communityCards: [
       {
         id: 'proj-poker',
-        rank: '2',
-        suit: '♦',
+        rank: 'A',
+        suit: '♠',
         frontHeadline: 'Analytical Poker Platform',
         frontSubtext: 'Active · April 2026–Present',
         back: {
@@ -194,7 +668,7 @@ export const ROOMS: RoomData[] = [
       {
         id: 'proj-cheetcode',
         rank: '3',
-        suit: '♦',
+        suit: '♠',
         frontHeadline: 'CheetCode',
         frontSubtext: 'Shipped · Jan–Feb 2026',
         back: {
@@ -221,8 +695,8 @@ export const ROOMS: RoomData[] = [
       },
       {
         id: 'skills-languages',
-        rank: '5',
-        suit: '♦',
+        rank: '2',
+        suit: '♣',
         frontHeadline: 'Languages',
         frontSubtext: 'How I write code',
         back: {
@@ -232,7 +706,7 @@ export const ROOMS: RoomData[] = [
       },
       {
         id: 'skills-libraries',
-        rank: '6',
+        rank: '2',
         suit: '♦',
         frontHeadline: 'Libraries & ML',
         frontSubtext: 'The stack underneath',
@@ -251,11 +725,21 @@ export const ROOMS: RoomData[] = [
       { rank: 'J', suit: '♣' },
       { rank: '10', suit: '♣' },
     ],
+    villains: mkVillains(200),
+    mainVillainPosition: 'BTN',
+    villainHoleCards: [
+      { rank: 'A', suit: '♥' },
+      { rank: 'A', suit: '♦' },
+    ],
+    heroStartingStack: 200,
+    bigBlind: 2,
+    smallBlind: 1,
+    handScript: awardsScript,
     communityCards: [
       {
         id: 'award-amc',
-        rank: '2',
-        suit: '♣',
+        rank: 'A',
+        suit: '♠',
         frontHeadline: 'AMC 12B',
         frontSubtext: 'Top 5% Distinction',
         back: {
@@ -265,7 +749,7 @@ export const ROOMS: RoomData[] = [
       },
       {
         id: 'award-aime',
-        rank: '3',
+        rank: 'K',
         suit: '♣',
         frontHeadline: 'AIME',
         frontSubtext: 'Qualified twice · Top 25%',
@@ -276,8 +760,8 @@ export const ROOMS: RoomData[] = [
       },
       {
         id: 'award-euclid',
-        rank: '4',
-        suit: '♣',
+        rank: 'Q',
+        suit: '♦',
         frontHeadline: 'UWaterloo Euclid',
         frontSubtext: 'Top 1% of 24,000',
         back: {
@@ -287,7 +771,7 @@ export const ROOMS: RoomData[] = [
       },
       {
         id: 'award-csmc',
-        rank: '5',
+        rank: 'Q',
         suit: '♣',
         frontHeadline: 'Canadian Senior Math',
         frontSubtext: 'Top 1% of 15,000',
@@ -298,7 +782,7 @@ export const ROOMS: RoomData[] = [
       },
       {
         id: 'award-ipa',
-        rank: '6',
+        rank: 'A',
         suit: '♣',
         frontHeadline: 'IPA Challengers Division',
         frontSubtext: '2nd Place',

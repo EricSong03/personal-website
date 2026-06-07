@@ -6,7 +6,6 @@ import { CommunityCardData } from "@/lib/types"
 
 const isRed = (suit: string) => suit === "♥" || suit === "♦"
 
-// Expanded card dimensions
 const EXP_W = 300
 const EXP_H = 440
 
@@ -40,17 +39,29 @@ export default function CardSpotlight({ expanded, onClose }: CardSpotlightProps)
 function CardView({ data, onClose }: { data: ExpandedCard; onClose: () => void }) {
   const { card, rect } = data
   const red = isRed(card.suit)
+  const accent = "#c8962a"
 
-  // Compute origin offset so the expanded card appears to come from the clicked card
   const ox = rect.left + rect.width / 2 - window.innerWidth / 2
   const oy = rect.top + rect.height / 2 - window.innerHeight / 2
   const initialScale = rect.width / EXP_W
+
+  // Stagger items in after the flip finishes (~0.6s total)
+  const fadeIn = (i: number) => ({
+    initial: { opacity: 0, y: 8 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.3, ease: "easeOut", delay: 0.65 + i * 0.07 },
+  })
+
+  const hasBullets = !!(card.back.bullets?.length)
+  const tagsDelay = hasBullets ? 2 : 1
+  const linksDelay = hasBullets ? 2 : 1
 
   return (
     <>
       {/* Backdrop */}
       <motion.div
-        className="fixed inset-0 z-40 bg-black/80 cursor-pointer"
+        className="fixed inset-0 z-40 cursor-pointer"
+        style={{ backgroundColor: "rgba(0,0,0,0.82)", backdropFilter: "blur(3px)" }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -58,7 +69,6 @@ function CardView({ data, onClose }: { data: ExpandedCard; onClose: () => void }
         onClick={onClose}
       />
 
-      {/* Centered expanded card */}
       <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
         <motion.div
           className="pointer-events-auto"
@@ -68,7 +78,6 @@ function CardView({ data, onClose }: { data: ExpandedCard; onClose: () => void }
           exit={{ x: ox, y: oy, scale: initialScale }}
           transition={{ duration: 0.38, ease: [0.25, 0.46, 0.45, 0.94] }}
         >
-          {/* Flip wrapper — starts at front (0°), flips to back (180°) */}
           <motion.div
             className="relative w-full h-full"
             style={{ transformStyle: "preserve-3d" }}
@@ -77,7 +86,7 @@ function CardView({ data, onClose }: { data: ExpandedCard; onClose: () => void }
             exit={{ rotateY: 0 }}
             transition={{ duration: 0.45, ease: "easeInOut", delay: 0.15 }}
           >
-            {/* Front face — same as table card, just larger */}
+            {/* Front face */}
             <div
               className="absolute inset-0 rounded-2xl shadow-2xl flex flex-col p-4"
               style={{
@@ -100,76 +109,117 @@ function CardView({ data, onClose }: { data: ExpandedCard; onClose: () => void }
               </div>
             </div>
 
-            {/* Back face — detail content */}
+            {/* Back face */}
             <div
-              className="absolute inset-0 rounded-2xl shadow-2xl flex flex-col"
+              className="absolute inset-0 shadow-2xl flex flex-col overflow-hidden"
               style={{
-                backgroundColor: "#141414",
-                border: "1px solid #c8962a",
+                backgroundColor: "#1a2e1a",
+                border: "6px solid #c8962a",
+                borderRadius: 18,
                 backfaceVisibility: "hidden",
                 WebkitBackfaceVisibility: "hidden",
                 transform: "rotateY(180deg)",
-                overflow: "hidden",
               }}
             >
-              {/* Header */}
-              <div className="flex items-baseline gap-2 px-6 pt-6 pb-4 border-b border-[#262626]">
-                <span className={`font-mono text-sm font-bold ${red ? "text-[#dc2626]" : "text-[#c8962a]"}`}>
-                  {card.rank}{card.suit}
+              {/* Spade watermark */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
+                <span style={{ fontSize: 180, lineHeight: 1, color: "#c8962a", opacity: 0.06, userSelect: "none" }}>
+                  ♠
                 </span>
-                <h2 className="text-lg font-bold text-white leading-tight">{card.back.title}</h2>
               </div>
 
-              {/* Scrollable content */}
-              <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-4">
-                {/* Bullets */}
-                {card.back.bullets && (
-                  <ul className="flex flex-col gap-2">
-                    {card.back.bullets.map((b, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <span className="text-[#c8962a] mt-0.5 shrink-0">▸</span>
-                        <span className="text-sm text-[#a3a3a3] leading-relaxed">{b}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+              {/* Card content */}
+              <div className="relative flex flex-col h-full px-7 gap-6" style={{ zIndex: 1, paddingTop: 12, paddingBottom: 32 }}>
 
-                {/* Tags */}
-                {card.back.tags && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {card.back.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="font-mono text-xs px-2 py-0.5 rounded border border-[#2a2a2a] text-[#737373] bg-[#0a0a0a]"
-                      >
-                        {tag}
-                      </span>
-                    ))}
+                {/* Header: rank+suit top-left, title to the right */}
+                <motion.div {...fadeIn(0)} className="flex flex-col gap-3">
+                  <div className="relative flex items-start justify-center">
+                    <div className="absolute left-0 top-0 flex flex-col items-center" style={{ minWidth: 20 }}>
+                      <span className="font-mono text-base font-bold leading-none" style={{ color: accent }}>{card.rank}</span>
+                      <span className="font-mono text-base leading-none mt-1" style={{ color: accent }}>{card.suit}</span>
+                    </div>
+                    <h2 className="text-[20px] font-bold text-white leading-tight tracking-tight text-center px-8">
+                      {card.back.title}
+                    </h2>
                   </div>
-                )}
+                  <div
+                    className="h-px w-full"
+                    style={{ background: `linear-gradient(to right, ${accent}70, ${accent}10, transparent)` }}
+                  />
+                </motion.div>
 
-                {/* Links */}
-                {card.back.links && (
-                  <div className="flex flex-col gap-1.5">
-                    {card.back.links.map((link) => (
-                      <a
-                        key={link.href}
-                        href={link.href}
-                        target={link.href.startsWith("http") ? "_blank" : undefined}
-                        rel={link.href.startsWith("http") ? "noopener noreferrer" : undefined}
-                        className="text-sm text-[#c8962a] hover:text-[#f0b429] transition-colors duration-150"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {link.label} →
-                      </a>
-                    ))}
-                  </div>
-                )}
-              </div>
+                {/* Scrollable body */}
+                <div className="flex-1 overflow-y-auto flex flex-col gap-4" style={{ scrollbarWidth: "none" }}>
 
-              {/* Footer */}
-              <div className="px-6 py-3 border-t border-[#1a1a1a]">
-                <p className="text-[10px] font-mono text-[#404040]">esc or click outside to close</p>
+                  {/* Bullets */}
+                  {card.back.bullets && (
+                    <motion.div {...fadeIn(1)} className="flex flex-col gap-3">
+                      {card.back.bullets.map((b, i) => (
+                        <div key={i} className="flex items-start gap-3">
+                          <div
+                            className="w-0.5 shrink-0 rounded-full mt-1"
+                            style={{ backgroundColor: accent, height: 14, opacity: 0.85 }}
+                          />
+                          <span className="text-[13px] leading-relaxed" style={{ color: "#c8c8c8" }}>{b}</span>
+                        </div>
+                      ))}
+                    </motion.div>
+                  )}
+
+                  {/* Tags */}
+                  {card.back.tags && (
+                    <motion.div {...fadeIn(tagsDelay)} className="flex flex-wrap gap-1.5">
+                      {card.back.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="font-mono text-[10px] px-2 py-0.5 rounded-sm"
+                          style={{
+                            backgroundColor: `${accent}10`,
+                            border: `1px solid ${accent}30`,
+                            color: accent,
+                            letterSpacing: "0.02em",
+                          }}
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </motion.div>
+                  )}
+
+                  {/* Links */}
+                  {card.back.links && (
+                    <motion.div {...fadeIn(linksDelay)} className="flex flex-col gap-0.5">
+                      {card.back.links.map((link) => (
+                        <a
+                          key={link.href}
+                          href={link.href}
+                          target={link.href.startsWith("http") ? "_blank" : undefined}
+                          rel={link.href.startsWith("http") ? "noopener noreferrer" : undefined}
+                          className="flex items-center gap-2 px-2 py-1.5 rounded-md transition-all duration-150"
+                          style={{ color: accent, textDecoration: "none" }}
+                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = `${accent}12` }}
+                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent" }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <span className="text-[10px] opacity-50 shrink-0">→</span>
+                          <span className="text-[13px] leading-none">{link.label}</span>
+                        </a>
+                      ))}
+                    </motion.div>
+                  )}
+                </div>
+
+                {/* Close hint */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1.0, duration: 0.4 }}
+                  className="flex justify-center"
+                >
+                  <span className="font-mono text-[8px] tracking-[0.2em] uppercase" style={{ color: `${accent}35` }}>
+                    esc · click outside to close
+                  </span>
+                </motion.div>
               </div>
             </div>
           </motion.div>

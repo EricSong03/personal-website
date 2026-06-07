@@ -15,6 +15,7 @@ export default function CommunityCard({ card, faceUp, onExpand }: CommunityCardP
   const red = isRed(card.suit)
 
   return (
+    <div className="flex flex-col items-center gap-1">
     <motion.div
       className="cursor-pointer select-none"
       style={{ width: 88, height: 124, perspective: 800 }}
@@ -57,7 +58,7 @@ export default function CommunityCard({ card, faceUp, onExpand }: CommunityCardP
 
         {/* Back face */}
         <div
-          className="absolute inset-0 rounded-lg shadow-xl"
+          className="absolute inset-0 rounded-lg shadow-xl flex flex-col items-center justify-center gap-1 px-1"
           style={{
             backgroundColor: "#1a2e1a",
             backfaceVisibility: "hidden",
@@ -66,11 +67,21 @@ export default function CommunityCard({ card, faceUp, onExpand }: CommunityCardP
             border: "2px solid #c8962a",
           }}
         >
-          <div className="w-full h-full flex items-center justify-center text-[#c8962a] text-2xl opacity-40">
-            ♠
+          <div className="text-[#c8962a] text-xl opacity-40">♠</div>
+          <div className="text-[6px] font-mono text-center leading-snug opacity-50" style={{ color: '#c8962a' }}>
+            play to reveal me!
           </div>
         </div>
       </motion.div>
     </motion.div>
+    <motion.span
+      className="text-[7px] font-mono tracking-widest pointer-events-none"
+      style={{ color: '#c8962a' }}
+      animate={faceUp ? { opacity: [0.35, 1, 0.35] } : { opacity: 0 }}
+      transition={faceUp ? { duration: 1.8, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.1 }}
+    >
+      CLICK
+    </motion.span>
+    </div>
   )
 }
