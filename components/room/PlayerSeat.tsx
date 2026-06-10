@@ -93,29 +93,31 @@ export default function PlayerSeat({
         </div>
       )}
 
-      {/* Avatar + info bubble */}
+      {/* Avatar + info plate */}
       <motion.div
-        className="flex items-center gap-2 rounded-full px-3 py-1.5"
+        className="flex items-center gap-2 rounded-md px-3 py-1.5"
         style={{
-          backgroundColor: isHero
-            ? 'rgba(200, 150, 42, 0.15)'
-            : 'rgba(255,255,255,0.05)',
+          background: isHero
+            ? 'linear-gradient(180deg, rgba(200,150,42,0.14) 0%, rgba(200,150,42,0.06) 100%)'
+            : 'linear-gradient(180deg, #1a1a1a 0%, #121212 100%)',
           border: isActive
-            ? '1.5px solid #c8962a'
-            : folded
-            ? '1px solid #262626'
-            : '1px solid #333',
-          opacity: folded ? 0.4 : 1,
+            ? '1px solid #c8962a'
+            : isHero
+            ? '1px solid #6b5520'
+            : '1px solid #2e2e2e',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05), 0 2px 8px rgba(0,0,0,0.5)',
+          opacity: folded ? 0.35 : 1,
+          filter: folded ? 'grayscale(1)' : 'none',
         }}
-        animate={isActive ? { boxShadow: ['0 0 0 0 rgba(200,150,42,0)', '0 0 0 6px rgba(200,150,42,0.4)', '0 0 0 0 rgba(200,150,42,0)'] } : {}}
+        animate={isActive ? { boxShadow: ['0 0 0 0 rgba(200,150,42,0)', '0 0 0 5px rgba(200,150,42,0.22)', '0 0 0 0 rgba(200,150,42,0)'] } : {}}
         transition={{ repeat: Infinity, duration: 1.6 }}
       >
         {/* Position chip */}
         <span
-          className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded"
+          className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-sm tracking-wider"
           style={{
-            backgroundColor: isHero ? '#c8962a' : '#2a2a2a',
-            color: isHero ? '#000' : '#737373',
+            backgroundColor: isHero ? '#c8962a' : '#232323',
+            color: isHero ? '#0a0a0a' : '#8a8a8a',
           }}
         >
           {position}
@@ -123,18 +125,18 @@ export default function PlayerSeat({
 
         {/* Villain name */}
         {!isHero && (
-          <span className="text-[10px] font-mono text-[#737373]">{name}</span>
+          <span className="text-[10px] font-mono text-[#8a8a8a]">{name}</span>
         )}
 
         {/* Stack */}
-        <span className={`text-xs font-mono font-bold ${folded ? 'text-[#404040]' : 'text-[#d4d4d4]'}`}>
+        <span className={`text-xs font-mono font-bold ${folded ? 'text-[#404040]' : 'text-[#e5e0d3]'}`}>
           ${stack}
         </span>
       </motion.div>
 
       {/* Folded overlay */}
       {folded && (
-        <span className="text-[9px] font-mono text-[#525252] mt-0.5">folded</span>
+        <span className="text-[9px] font-mono text-[#525252] mt-0.5 uppercase tracking-wider">folded</span>
       )}
     </div>
   )

@@ -43,19 +43,20 @@ export default function HoleCard({
           <div
             className="absolute inset-0 rounded-lg shadow-xl flex flex-col p-1.5"
             style={{
-              backgroundColor: "#fafaf9",
+              background: "linear-gradient(165deg, #faf8f1 0%, #f6f3ea 55%, #ece8db 100%)",
+              border: "1px solid rgba(0,0,0,0.18)",
               backfaceVisibility: "hidden",
               WebkitBackfaceVisibility: "hidden",
             }}
           >
-            <div className={`text-xs font-mono font-bold leading-tight ${red ? "text-[#dc2626]" : "text-black"}`}>
+            <div className={`text-xs font-mono font-bold leading-tight ${red ? "text-[#b3403a]" : "text-[#1a1a1a]"}`}>
               <div>{card.rank}</div>
               <div>{card.suit}</div>
             </div>
-            <div className={`flex-1 flex items-center justify-center text-4xl ${red ? "text-[#dc2626]" : "text-black"}`}>
+            <div className={`flex-1 flex items-center justify-center text-4xl ${red ? "text-[#b3403a]" : "text-[#1a1a1a]"}`}>
               {card.suit}
             </div>
-            <div className={`text-xs font-mono font-bold leading-tight rotate-180 ${red ? "text-[#dc2626]" : "text-black"}`}>
+            <div className={`text-xs font-mono font-bold leading-tight rotate-180 ${red ? "text-[#b3403a]" : "text-[#1a1a1a]"}`}>
               <div>{card.rank}</div>
               <div>{card.suit}</div>
             </div>
@@ -63,16 +64,19 @@ export default function HoleCard({
 
           {/* Back face */}
           <div
-            className="absolute inset-0 rounded-lg shadow-xl"
+            className="absolute inset-0 rounded-lg shadow-xl p-1"
             style={{
-              backgroundColor: "#1a2e1a",
+              background: "linear-gradient(170deg, #1a1714 0%, #141210 60%, #0f0d0b 100%)",
+              border: "1px solid #8a7437",
               backfaceVisibility: "hidden",
               WebkitBackfaceVisibility: "hidden",
               transform: "rotateY(180deg)",
-              border: "2px solid #c8962a",
             }}
           >
-            <div className="w-full h-full flex items-center justify-center text-[#c8962a] text-2xl opacity-40">
+            <div
+              className="w-full h-full flex items-center justify-center rounded-md text-2xl"
+              style={{ border: "1px solid rgba(217,182,95,0.25)", color: "rgba(217,182,95,0.35)" }}
+            >
               ♠
             </div>
           </div>
