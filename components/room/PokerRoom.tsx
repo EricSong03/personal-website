@@ -318,7 +318,7 @@ export default function PokerRoom({ room }: PokerRoomProps) {
                         initial={{ opacity: 0, y: 6 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0 }}
-                        className="text-xs font-mono text-[#c8962a] text-center max-w-[220px] leading-snug"
+                        className="text-xs font-mono text-[#d9b65f] text-center max-w-[220px] leading-snug"
                       >
                         {room.handScript.showdown.description}
                       </motion.div>

@@ -8,9 +8,9 @@ interface ActionButtonsProps {
 }
 
 const actionColor: Record<string, string> = {
-  fold:  '#ef4444',
-  check: '#22c55e',
-  call:  '#22c55e',
+  fold:  '#b3544e',
+  check: '#7ba386',
+  call:  '#7ba386',
   bet:   '#c8962a',
   raise: '#c8962a',
 }
@@ -26,21 +26,20 @@ export default function ActionButtons({ options, onAct }: ActionButtonsProps) {
     >
       {options.map((opt) => {
         const color = actionColor[opt.action] ?? '#737373'
-        const isFold = opt.isFold
 
         return (
           <motion.button
             key={opt.label}
             onClick={() => onAct(opt)}
-            className="px-5 py-2.5 rounded-lg font-mono text-sm font-bold transition-colors duration-100"
+            className="px-5 py-2.5 rounded-md font-mono text-xs font-semibold uppercase tracking-[0.14em] cursor-pointer transition-colors duration-150"
             style={{
-              backgroundColor: isFold ? 'rgba(239,68,68,0.12)' : `${color}18`,
-              border: `1.5px solid ${color}`,
+              backgroundColor: `${color}14`,
+              border: `1px solid ${color}80`,
               color,
               minWidth: 90,
             }}
-            whileHover={{ scale: 1.04, backgroundColor: `${color}28` }}
-            whileTap={{ scale: 0.97 }}
+            whileHover={{ backgroundColor: `${color}26`, borderColor: color }}
+            whileTap={{ scale: 0.98 }}
           >
             {opt.label}
           </motion.button>

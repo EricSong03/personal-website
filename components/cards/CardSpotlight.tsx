@@ -49,7 +49,7 @@ function CardView({ data, onClose }: { data: ExpandedCard; onClose: () => void }
   const fadeIn = (i: number) => ({
     initial: { opacity: 0, y: 8 },
     animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.3, ease: "easeOut", delay: 0.65 + i * 0.07 },
+    transition: { duration: 0.3, ease: "easeOut" as const, delay: 0.65 + i * 0.07 },
   })
 
   const hasBullets = !!(card.back.bullets?.length)

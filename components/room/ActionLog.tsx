@@ -28,11 +28,11 @@ export default function ActionLog({ entries }: ActionLogProps) {
           const isBlind    = entry.includes('posts')
 
           const color = isStreet
-            ? '#c8962a'
+            ? '#d9b65f'
             : isSuit
             ? '#737373'
             : isHero
-            ? '#a3d9a5'
+            ? '#8fae97'
             : isBlind
             ? '#525252'
             : '#a3a3a3'

@@ -20,7 +20,7 @@ export default function PotDisplay({ pot, bigBlind }: PotDisplayProps) {
     >
       <ChipStack amount={pot} label={false} />
       <div className="flex flex-col items-center gap-0">
-        <span className="text-[11px] font-mono font-bold text-[#e0c97a]">${pot}</span>
+        <span className="text-[11px] font-mono font-bold text-[#d9b65f]">${pot}</span>
         <span className="text-[9px] font-mono text-[#737373]">{bbs}bb</span>
       </div>
     </motion.div>

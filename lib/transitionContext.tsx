@@ -9,28 +9,37 @@ import {
 } from "react"
 import { useRouter } from "next/navigation"
 
+export interface TransitionOrigin {
+  x: number
+  y: number
+}
+
 interface PageTransitionContextValue {
   isTransitioning: boolean
-  triggerTransition: (href: string) => void
+  origin: TransitionOrigin | null
+  triggerTransition: (href: string, origin?: TransitionOrigin) => void
   endTransition: () => void
 }
 
 const PageTransitionContext = createContext<PageTransitionContextValue>({
   isTransitioning: false,
+  origin: null,
   triggerTransition: () => {},
   endTransition: () => {},
 })
 
 export function PageTransitionProvider({ children }: { children: ReactNode }) {
   const [isTransitioning, setIsTransitioning] = useState(false)
+  const [origin, setOrigin] = useState<TransitionOrigin | null>(null)
   const router = useRouter()
 
   const triggerTransition = useCallback(
-    (href: string) => {
+    (href: string, clickOrigin?: TransitionOrigin) => {
+      setOrigin(clickOrigin ?? null)
       setIsTransitioning(true)
       setTimeout(() => {
         router.push(href)
-      }, 320)
+      }, 500)
     },
     [router]
   )
@@ -41,7 +50,7 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
 
   return (
     <PageTransitionContext.Provider
-      value={{ isTransitioning, triggerTransition, endTransition }}
+      value={{ isTransitioning, origin, triggerTransition, endTransition }}
     >
       {children}
     </PageTransitionContext.Provider>
