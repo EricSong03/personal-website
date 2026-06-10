@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef, RefObject, type CSSProperties } from 'react'
+import { useState, useCallback, useEffect, useRef, type CSSProperties } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import PokerTable from '@/components/room/PokerTable'
 import PlayerSeat from '@/components/room/PlayerSeat'
@@ -15,11 +15,6 @@ import { usePokerHand } from '@/lib/hooks/usePokerHand'
 import { useFlopDeal } from '@/lib/hooks/useFlopDeal'
 import { useCardDeal } from '@/lib/hooks/useCardDeal'
 import { RoomData, CommunityCardData, Position } from '@/lib/types'
-
-function getCenter(ref: RefObject<HTMLDivElement | null>) {
-  const r = ref.current?.getBoundingClientRect()
-  return r ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : { x: 0, y: 0 }
-}
 
 // ---------------------------------------------------------------------------
 // Seat layout constants (% of the 900×580 oval container)
@@ -64,20 +59,20 @@ export default function PokerRoom({ room }: PokerRoomProps) {
 
   // Flop: stack → flip → spread using legacy hook
   const flopDeal = useFlopDeal({
-    origin: getCenter(deckRef),
-    slot0:  getCenter(c0Ref),
-    slot1:  getCenter(c1Ref),
-    slot2:  getCenter(c2Ref),
+    originRef: deckRef,
+    slot0Ref:  c0Ref,
+    slot1Ref:  c1Ref,
+    slot2Ref:  c2Ref,
     enabled: state.phase === 'deal_street' && state.street === 'flop',
   })
   // Turn + river: single card fly-in
   const turnDeal = useCardDeal({
-    origin: getCenter(deckRef), destination: getCenter(c3Ref),
+    originRef: deckRef, destinationRef: c3Ref,
     duration: 380, flipAt: 0.6, delay: 0,
     enabled: state.phase === 'deal_street' && state.street === 'turn',
   })
   const riverDeal = useCardDeal({
-    origin: getCenter(deckRef), destination: getCenter(c4Ref),
+    originRef: deckRef, destinationRef: c4Ref,
     duration: 380, flipAt: 0.6, delay: 0,
     enabled: state.phase === 'deal_street' && state.street === 'river',
   })

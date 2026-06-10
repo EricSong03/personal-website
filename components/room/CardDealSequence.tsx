@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback, RefObject } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import type { CSSProperties } from "react"
 import { RoomData, CommunityCardData } from "@/lib/types"
 import { useCardDeal } from "@/lib/hooks/useCardDeal"
@@ -19,11 +19,6 @@ const T_RIVER     = T_TURN + 900
 
 const HOLE_DUR = 420
 const COMM_DUR = 380
-
-function getCenter(ref: RefObject<HTMLElement | null>): { x: number; y: number } {
-  const r = ref.current?.getBoundingClientRect()
-  return r ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : { x: 0, y: 0 }
-}
 
 // Hook style is active (non-waiting, non-done) when it has `position` set,
 // or the card has already landed. This prevents a 1-frame flash at final position.
@@ -89,12 +84,11 @@ export default function CardDealSequence({ room, onExpandCard }: CardDealSequenc
   }, [skipped])
 
   // Hooks must be called unconditionally; positions are read from refs at enable time
-  const deck  = () => getCenter(deckRef)
-  const hole1 = useCardDeal({ origin: deck(), destination: getCenter(h1Ref), duration: HOLE_DUR, flipAt: 99, delay: 0, enabled: ena.hole1 })
-  const hole2 = useCardDeal({ origin: deck(), destination: getCenter(h2Ref), duration: HOLE_DUR, flipAt: 99, delay: 0, enabled: ena.hole2 })
-  const flop  = useFlopDeal({ origin: deck(), slot0: getCenter(c0Ref), slot1: getCenter(c1Ref), slot2: getCenter(c2Ref), enabled: ena.flop })
-  const turn  = useCardDeal({ origin: deck(), destination: getCenter(c3Ref), duration: COMM_DUR, flipAt: 0.6, delay: 0, enabled: ena.turn })
-  const river = useCardDeal({ origin: deck(), destination: getCenter(c4Ref), duration: COMM_DUR, flipAt: 0.6, delay: 0, enabled: ena.river })
+  const hole1 = useCardDeal({ originRef: deckRef, destinationRef: h1Ref, duration: HOLE_DUR, flipAt: 99, delay: 0, enabled: ena.hole1 })
+  const hole2 = useCardDeal({ originRef: deckRef, destinationRef: h2Ref, duration: HOLE_DUR, flipAt: 99, delay: 0, enabled: ena.hole2 })
+  const flop  = useFlopDeal({ originRef: deckRef, slot0Ref: c0Ref, slot1Ref: c1Ref, slot2Ref: c2Ref, enabled: ena.flop })
+  const turn  = useCardDeal({ originRef: deckRef, destinationRef: c3Ref, duration: COMM_DUR, flipAt: 0.6, delay: 0, enabled: ena.turn })
+  const river = useCardDeal({ originRef: deckRef, destinationRef: c4Ref, duration: COMM_DUR, flipAt: 0.6, delay: 0, enabled: ena.river })
 
   const cards = room.communityCards
 

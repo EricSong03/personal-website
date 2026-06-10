@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, RefObject } from 'react';
 import type { CSSProperties } from 'react';
 
 interface UseCardDealOptions {
-  origin: { x: number; y: number };
-  destination: { x: number; y: number };
+  originRef: RefObject<HTMLDivElement | null>;
+  destinationRef: RefObject<HTMLDivElement | null>;
   duration: number;
   flipAt: number;   // 0–1 fraction of duration when flip triggers
   delay: number;    // stagger offset in ms
@@ -18,6 +18,11 @@ interface UseCardDealResult {
 
 type Phase = 'waiting' | 'starting' | 'traveling' | 'done';
 
+function getCenter(ref: RefObject<HTMLDivElement | null>) {
+  const r = ref.current?.getBoundingClientRect();
+  return r ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : { x: 0, y: 0 };
+}
+
 export function useCardDeal(options: UseCardDealOptions): UseCardDealResult {
   const [phase, setPhase] = useState<Phase>('waiting');
   const [isFlipped, setIsFlipped] = useState(false);
@@ -25,9 +30,8 @@ export function useCardDeal(options: UseCardDealOptions): UseCardDealResult {
 
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const rafsRef = useRef<number[]>([]);
-  // Capture coords when animation starts so resize mid-flight doesn't jitter
-  const coordsRef = useRef({ origin: options.origin, destination: options.destination });
-  // Always-fresh snapshot of options, read inside effect via ref
+  // Coords captured once when animation starts — never re-read during flight
+  const coordsRef = useRef({ origin: { x: 0, y: 0 }, destination: { x: 0, y: 0 } });
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
@@ -39,19 +43,21 @@ export function useCardDeal(options: UseCardDealOptions): UseCardDealResult {
       return;
     }
 
-    const { origin, destination, duration, flipAt, delay } = optionsRef.current;
-    coordsRef.current = { origin, destination };
+    // Read layout once here, not on every render
+    coordsRef.current = {
+      origin: getCenter(optionsRef.current.originRef),
+      destination: getCenter(optionsRef.current.destinationRef),
+    };
+
+    const { duration, flipAt, delay } = optionsRef.current;
 
     timersRef.current.forEach(clearTimeout);
     rafsRef.current.forEach(cancelAnimationFrame);
     timersRef.current = [];
     rafsRef.current = [];
 
-    // Step 1: after stagger delay, snap card to origin (no transition)
     const t1 = setTimeout(() => {
       setPhase('starting');
-      // Double RAF ensures browser paints the 'starting' position before
-      // we add the transition and move to destination
       const raf1 = requestAnimationFrame(() => {
         const raf2 = requestAnimationFrame(() => setPhase('traveling'));
         rafsRef.current.push(raf2);
@@ -59,10 +65,8 @@ export function useCardDeal(options: UseCardDealOptions): UseCardDealResult {
       rafsRef.current.push(raf1);
     }, delay);
 
-    // Step 2: flip at the specified fraction of travel duration
     const t2 = setTimeout(() => setIsFlipped(true), delay + flipAt * duration);
 
-    // Step 3: animation complete
     const t3 = setTimeout(() => {
       setPhase('done');
       setHasLanded(true);
